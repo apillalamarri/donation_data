@@ -1,8 +1,12 @@
 import mysql.connector
 
-#Start the mysql connection to the local database
-cnx = mysql.connector.connect(user='root', database='donations')
 
+#Start the mysql connection to the local database
+#Home
+#cnx = mysql.connector.connect(user='root', password='root', database='noi_donations')
+
+#Work
+cnx = mysql.connector.connect(user='root', database='donations')
 #Calls the cursor method to move through database results
 cursor = cnx.cursor()
 
@@ -164,6 +168,39 @@ cursor.close()
 #Close connection to localhost
 cnx.close()
 
+#Open connection to ActionKit
+cnx = mysql.connector.connect(host='client-db.actionkit.com', user='noi_anupama', password='92semKqWFdDM',database='ak_noi')
+cursor = cnx.cursor()
+
+#AlumNOI Query
+ak_query=("""
+	SELECT core_user.email
+	FROM core_user
+	JOIN core_action
+	ON (core_user.id = core_action.user_id)
+	JOIN core_page
+	ON (core_action.page_id=core_page.id)
+	WHERE core_user.subscription_status = 'subscribed'
+	AND (core_page.title LIKE 'NMT%' COLLATE utf8_bin
+	OR core_page.title LIKE 'DBC%' COLLATE utf8_bin
+	OR core_page.title LIKE 'DT%' COLLATE utf8_bin
+	OR core_page.title LIKE 'MBT%' COLLATE utf8_bin
+	OR core_page.title LIKE 'NMBC%' COLLATE utf8_bin
+	OR core_page.title LIKE 'NMT%' COLLATE utf8_bin
+	OR core_page.title LIKE 'NOD%' COLLATE utf8_bin
+	OR core_page.title LIKE 'NOF%' COLLATE utf8_bin
+	OR core_page.title LIKE 'NOISE%' COLLATE utf8_bin
+	OR core_page.title LIKE 'RC%' COLLATE utf8_bin
+	OR core_page.title LIKE 'SRC%' COLLATE utf8_bin)	
+""")
+
+cursor.execute(ak_query)
+ak_info = []
+for (email) in cursor:
+	ak_info.append(str(email).lower())
+cursor.close()
+cnx.close()
+
 #Add donation information	
 for contact_id, info_list in all_info.iteritems():
 	if contact_id in donation_info.keys():
@@ -198,6 +235,14 @@ for contact_id, info_list in all_info.iteritems():
 		info_list.extend(all_payments_info.get(contact_id)[6:])
 	else:
 		info_list.extend(['', '', '', ''])
+
+#Add alumNOI info
+for info_list in all_info.itervalues():
+	print 'Email is {0}'.format(info_list[3])
+	if info_list[3].lower() in ak_info:
+		info_list.append('1')
+	else:
+		info_list.append('')
 		
 #print all_info
 
@@ -250,7 +295,8 @@ headers = ['Contact_Contact_ID',
 	'Maximum_of_All', 
 	'Sum_of_All', 
 	'Count_of_All', 
-	'Last_Date_of_All']
+	'Last_Date_of_All',
+	'AlumNOI']
 
 #Write the data to the output file
 with open ("all_sum_count_max_alumNOI.csv", "w") as append_emp:
