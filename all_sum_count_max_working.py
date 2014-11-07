@@ -18,6 +18,10 @@ all_info_query = ("""
 		Contact_Email, Contact_Household_Phone, Contact_Work_Phone
 		FROM donors
 		WHERE char_length(Contact_Contact_ID)>1
+		AND (Donor_Type LIKE 'Fee%'
+		OR Donor_Type LIKE 'Training Fee'
+		OR Donor_Type LIKE '%Grant%'
+		OR Donor_Type LIKE '%Individual%')
 		GROUP BY HEX(Contact_Contact_ID)
 		
 """)
@@ -95,6 +99,14 @@ all_payments_query =("""
 cursor.execute(all_info_query)
 all_info = {}
 
+for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone) in cursor:
+	#f Contact_Contact_ID == '0034000000hLAlg':
+		#print 'Got Megan Hull'
+	all_info[Contact_Contact_ID] = [Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, str(Contact_Email).strip(), Contact_Household_Phone, Contact_Work_Phone]
+
+#print all_info
+cursor.close()
+
 #Create a list of dictionaries from the cursor running all_info
 for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone) in cursor:
 	single_info = [Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone]
@@ -104,6 +116,7 @@ for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, C
 			item = ''
 	all_info[Contact_Contact_ID] = single_info
 cursor.close()
+
 
 cursor = cnx.cursor()
 #Create a dictionary for the donation_info query.
@@ -169,12 +182,11 @@ cursor.close()
 cnx.close()
 
 #Open connection to ActionKit
-cnx = mysql.connector.connect(host='client-db.actionkit.com', user='noi_anupama', password='92semKqWFdDM',database='ak_noi')
+cnx = mysql.connector.connect(host='', user='', password='',database='')
 cursor = cnx.cursor()
 
 #AlumNOI Query
-ak_query=("""
-	SELECT core_user.email
+ak_query=(""" SELECT core_user.email
 	FROM core_user
 	JOIN core_action
 	ON (core_user.id = core_action.user_id)
@@ -197,9 +209,18 @@ ak_query=("""
 cursor.execute(ak_query)
 ak_info = []
 for (email) in cursor:
-	ak_info.append(str(email).lower())
+	
+	ak_info.append(str(email[0]).lower())
+	
 cursor.close()
 cnx.close()
+
+#print 'at line 213, ak_info = ', ak_info
+
+cursor.close()
+cnx.close()
+
+#print ak_info
 
 #Add donation information	
 for contact_id, info_list in all_info.iteritems():
@@ -238,13 +259,22 @@ for contact_id, info_list in all_info.iteritems():
 
 #Add alumNOI info
 for info_list in all_info.itervalues():
-	print 'Email is {0}'.format(info_list[3])
+	#print type(str(info_list[3]))
+	#print 'Email is {0}'.format(info_list[3])
+	#print 'info_list[3] is {0}.'.format(info_list[3])
+	#print 'type of info_list[3] is {0}'.format(type(info_list[3]))
+	#print 'ak_info[0] is {0}.'.format(ak_info[0])
+	#print 'type of ak_info[0] is {0}'.format(type(ak_info[0]))
+	#print info_list[3] == ak_info[0]
 	if info_list[3].lower() in ak_info:
 		info_list.append('1')
 	else:
-		info_list.append('')
+		info_list.append('0')
+	
 		
 #print all_info
+
+
 
 def dict_of_lists_to_csv (dict, headers):
 	csv_string = ""
@@ -259,10 +289,10 @@ def dict_of_lists_to_csv (dict, headers):
 			if e is None:
 				e=''
 			try:
-				csv_string += str(e)+','
+				csv_string +='"'+str(e)+'"'+','
 			except UnicodeEncodeError:
-				e='Unicode Error'
-				csv_string += e+','
+				e='"'+'Unicode Error'+'"'
+				csv_string +='"'+e+'"'+','
 			#csv_string=csv_string.encode('ascii','ignore')
 			
 			#print csv_string
