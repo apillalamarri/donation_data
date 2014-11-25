@@ -3,10 +3,10 @@ import mysql.connector
 
 #Start the mysql connection to the local database
 #Home
-#cnx = mysql.connector.connect(user='root', password='root', database='noi_donations')
+#cnx = mysql.connector.connect(user='root', password='', database='noi_donations')
 
 #Work
-cnx = mysql.connector.connect(user='root', database='donations')
+cnx = mysql.connector.connect(user='', database='donations')
 #Calls the cursor method to move through database results
 cursor = cnx.cursor()
 
@@ -15,7 +15,11 @@ cursor = cnx.cursor()
 #This gets contact info for all contacts in Salesforce
 all_info_query = ("""
 	SELECT Contact_Contact_ID, Contact_First_Name, Contact_Last_Name,
-		Contact_Email, Contact_Household_Phone, Contact_Work_Phone
+		Contact_Email, Contact_Household_Phone, Contact_Work_Phone, 
+		Contact_Foundation_Contact, Contact_Labor_Contact, Contact_Sponsorship_Contact,
+		Contact_State_Training_Program_Participant, Contact_100_Lifetime,
+		Contact_500_Lifetime, Contact_Major_Individual_Donor, Contact_Multiple_Donations,
+		Contact_Recurring_Donor
 		FROM donors
 		WHERE char_length(Contact_Contact_ID)>1
 		AND (Donor_Type LIKE 'Fee%'
@@ -99,15 +103,28 @@ all_payments_query =("""
 cursor.execute(all_info_query)
 all_info = {}
 
-for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone) in cursor:
+for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone,
+	Contact_Foundation_Contact, Contact_Labor_Contact, Contact_Sponsorship_Contact,
+	Contact_State_Training_Program_Participant, Contact_100_Lifetime,
+	Contact_500_Lifetime, Contact_Major_Individual_Donor, Contact_Multiple_Donations,
+	Contact_Recurring_Donor) in cursor:
 	#f Contact_Contact_ID == '0034000000hLAlg':
 		#print 'Got Megan Hull'
-	all_info[Contact_Contact_ID] = [Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, str(Contact_Email).strip(), Contact_Household_Phone, Contact_Work_Phone]
+	single_info = [Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, str(Contact_Email).strip(), Contact_Household_Phone, Contact_Work_Phone, Contact_Foundation_Contact, Contact_Labor_Contact, Contact_Sponsorship_Contact,
+	Contact_State_Training_Program_Participant, Contact_100_Lifetime,
+	Contact_500_Lifetime, Contact_Major_Individual_Donor, Contact_Multiple_Donations,
+	Contact_Recurring_Donor]
+	for item in single_info:
+	#Handle the None type error by setting item to blank
+		if item is None:
+			item = ''
+	all_info[Contact_Contact_ID] = single_info
 
 #print all_info
 cursor.close()
 
-#Create a list of dictionaries from the cursor running all_info
+"""
+#Create a dictionary of lists from the cursor running all_info
 for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone) in cursor:
 	single_info = [Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, Contact_Household_Phone, Contact_Work_Phone]
 	for item in single_info:
@@ -116,6 +133,7 @@ for (Contact_Contact_ID, Contact_First_Name, Contact_Last_Name, Contact_Email, C
 			item = ''
 	all_info[Contact_Contact_ID] = single_info
 cursor.close()
+"""
 
 
 cursor = cnx.cursor()
@@ -182,7 +200,7 @@ cursor.close()
 cnx.close()
 
 #Open connection to ActionKit
-cnx = mysql.connector.connect(host='', user='', password='',database='')
+cnx = mysql.connector.connect(host='client-db.actionkit.com', user='noi_anupama', password='',database='ak_noi')
 cursor = cnx.cursor()
 
 #AlumNOI Query
@@ -198,10 +216,8 @@ ak_query=(""" SELECT core_user.email
 	OR core_page.title LIKE 'DT%' COLLATE utf8_bin
 	OR core_page.title LIKE 'MBT%' COLLATE utf8_bin
 	OR core_page.title LIKE 'NMBC%' COLLATE utf8_bin
-	OR core_page.title LIKE 'NMT%' COLLATE utf8_bin
 	OR core_page.title LIKE 'NOD%' COLLATE utf8_bin
 	OR core_page.title LIKE 'NOF%' COLLATE utf8_bin
-	OR core_page.title LIKE 'NOISE%' COLLATE utf8_bin
 	OR core_page.title LIKE 'RC%' COLLATE utf8_bin
 	OR core_page.title LIKE 'SRC%' COLLATE utf8_bin)	
 """)
@@ -306,6 +322,15 @@ headers = ['Contact_Contact_ID',
 	'Contact_Email', 
 	'Contact_Household_Phone', 
 	'Contact_Work_Phone', 
+	'Contact_Foundation_Contact',
+	'Contact_Labor_Contact',
+	'Contact_Sponsorship_Contact',
+	'Contact_State_Training_Program_Participant', 
+	'Contact_$100+_Lifetime',
+	'Contact_$500+_Lifetime',
+	'Contact_Major_Individual_Donor',
+	'Contact_Multiple_Donations,'
+	'Contact_Recurring_Donor',
 	'Maximum_Donation', 
 	'Sum_of_Donations', 
 	'Count_of_Donations', 
